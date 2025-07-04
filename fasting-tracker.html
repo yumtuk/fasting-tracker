@@ -1,0 +1,84 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Fasting & Meal Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getFirestore, collection, addDoc, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import {
+      getStorage, ref, uploadBytes, getDownloadURL
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCD1qrr9iGgJO9cLmkCMQ-moh5EmvCKZI",
+      authDomain: "fasting-meal-tracker.firebaseapp.com",
+      projectId: "fasting-meal-tracker",
+      storageBucket: "fasting-meal-tracker.appspot.com",
+      messagingSenderId: "167228058113",
+      appId: "1:167228058113:web:45d6bb9f5a7d2ee5c2ee00"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+
+    async function logFasting(state) {
+      await addDoc(collection(db, "fasting"), {
+        state: state,
+        timestamp: serverTimestamp()
+      });
+      alert(`Fast ${state}`);
+    }
+
+    async function logSteps() {
+      const steps = document.getElementById("steps").value;
+      if (!steps) return alert("Please enter step count.");
+      await addDoc(collection(db, "steps"), {
+        steps: parseInt(steps),
+        timestamp: serverTimestamp()
+      });
+      alert("Steps logged!");
+    }
+
+    async function logMeal() {
+      const fileInput = document.getElementById("mealImage");
+      if (fileInput.files.length === 0) return alert("Please select a meal photo.");
+
+      const file = fileInput.files[0];
+      const storageRef = ref(storage, 'meals/' + Date.now() + '-' + file.name);
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      await addDoc(collection(db, "meals"), {
+        imageUrl: downloadURL,
+        timestamp: serverTimestamp()
+      });
+
+      alert("Meal logged!");
+      fileInput.value = ""; // Clear input
+    }
+
+    window.logFasting = logFasting;
+    window.logSteps = logSteps;
+    window.logMeal = logMeal;
+  </script>
+</head>
+<body style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px;">
+  <h2>Fasting & Meal Tracker</h2>
+
+  <button onclick="logFasting('start')">Start Fast</button>
+  <button onclick="logFasting('end')">End Fast</button>
+
+  <h3>Log Steps</h3>
+  <input type="number" id="steps" placeholder="Enter steps walked today">
+  <button onclick="logSteps()">Log Steps</button>
+
+  <h3>Log Meal Photo</h3>
+  <input type="file" id="mealImage" accept="image/*">
+  <button onclick="logMeal()">Upload Meal</button>
+</body>
+</html>
